@@ -8,17 +8,16 @@ import (
 
 type RedisPool struct {
 	redis_pool *redis.Pool
-	maxActive  int
-	maxIdle    int
-	idleTime   time.Duration
+
+	maxActive int
+	maxIdle   int
+	idleTime  time.Duration
 }
 type Redis_func func(*RedisPool)
 
-var redisPool *RedisPool
+func Conn(conn, auth string, dbnum int, opts ...Redis_func) *RedisPool {
 
-func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
-
-	redisPool = &RedisPool{
+	redisPool := &RedisPool{
 		maxActive: 100,
 		maxIdle:   50,
 		idleTime:  300 * time.Second,
@@ -49,8 +48,8 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
 			if auth != "" {
 				if _, err := c.Do("AUTH", auth); err != nil {
 
+					zlog.F().Error("Connect to redis AUTH error", err)
 					c.Close()
-					zlog.F().Fatalf("Connect to redis AUTH error: %v", err)
 					return nil, err
 				}
 			}
@@ -68,6 +67,7 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
 	}
 	redisPool.redis_pool = pool
 
+	return redisPool
 }
 
 // WithMaxActive 设置最大活跃
@@ -91,8 +91,8 @@ func WithIdleTime(idleTime time.Duration) Redis_func {
 	}
 }
 
-func CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, err error) {
-	c := redisPool.redis_pool.Get()
+func (this *RedisPool) CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, err error) {
+	c := this.redis_pool.Get()
 	if c.Err() != nil {
 		zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
 		return
@@ -105,8 +105,8 @@ func CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, er
 	return nil, err
 }
 
-func CommonLuaScript(script string, key string, args ...interface{}) (reply interface{}, err error) {
-	c := redisPool.redis_pool.Get()
+func (this *RedisPool) CommonLuaScript(script string, key string, args ...interface{}) (reply interface{}, err error) {
+	c := this.redis_pool.Get()
 	if c.Err() != nil {
 		zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
 		return

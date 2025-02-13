@@ -1,7 +1,7 @@
-package sredis_test
+package zredis_test
 
 import (
-	"github.com/Xuzan9396/zredis/sredis"
+	"github.com/Xuzan9396/zredis"
 	"github.com/garyburd/redigo/redis"
 	"testing"
 	"time"
@@ -35,11 +35,11 @@ func TestRedisPool_CommonCmd(t *testing.T) {
 	conn := "127.0.0.1:6379"
 	passwd := "27252725"
 	dbnum := 0
-	client := sredis.Conn(conn, passwd, dbnum, sredis.WithIdleTime(60*time.Second))
-	client.CommonHset("test_lua_hset", "coin", 100)
-	client.CommonHset("test_lua_hset", "coin_free", 10)
-	resBytes, err := redis.Values(client.CommonLuaScript(GIFT_DRAW_POOL, "test_lua_hset", 2))
-	client.CommonEXPIRE("test_lua_hset", 3600)
+	zredis.Conn(conn, passwd, dbnum, zredis.WithIdleTime(60*time.Second))
+	zredis.CommonHset("test_lua_hset", "coin", 100)
+	zredis.CommonHset("test_lua_hset", "coin_free", 10)
+	resBytes, err := redis.Values(zredis.CommonLuaScript(GIFT_DRAW_POOL, "test_lua_hset", 2))
+	zredis.CommonEXPIRE("test_lua_hset", 3600)
 	if err != nil {
 		t.Error(err)
 		return
