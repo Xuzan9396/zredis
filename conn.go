@@ -8,14 +8,30 @@ import (
 
 type RedisPool struct {
 	redis_pool *redis.Pool
-}
 
-func Conn(conn, auth string, dbnum int) *RedisPool {
+	maxActive int
+	maxIdle   int
+	idleTime  time.Duration
+}
+type Redis_func func(*RedisPool)
+
+func Conn(conn, auth string, dbnum int, opts ...Redis_func) *RedisPool {
+
+	redisPool := &RedisPool{
+		maxActive: 100,
+		maxIdle:   50,
+		idleTime:  300 * time.Second,
+	}
+
+	for _, opt := range opts {
+		opt(redisPool)
+	}
+
 	pool := &redis.Pool{
-		MaxActive:   100,               // 最大活跃 假设应用在高并发场景下，最大并发请求数为 1000，那么可以将 MaxActive 设置为 2000-3000。
-		MaxIdle:     50,                // 最大空闲 ,一般启动时候保持的链接数
-		IdleTimeout: 300 * time.Second, // 空闲连接超时 超过这个时间会关闭空闲链接
-		Wait:        false,             // true: 如果达到最大连接数，等待空闲连接 false: 直接返回错误
+		MaxActive:   redisPool.maxActive, // 最大活跃 假设应用在高并发场景下，最大并发请求数为 1000，那么可以将 MaxActive 设置为 2000-3000。
+		MaxIdle:     redisPool.maxIdle,   // 最大空闲 ,一般启动时候保持的链接数
+		IdleTimeout: redisPool.idleTime,  // 空闲连接超时 超过这个时间会关闭空闲链接
+		Wait:        false,               // true: 如果达到最大连接数，等待空闲连接 false: 直接返回错误
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial(
 				"tcp",
@@ -48,11 +64,30 @@ func Conn(conn, auth string, dbnum int) *RedisPool {
 			return err
 		},
 	}
+	redisPool.redis_pool = pool
 
-	return &RedisPool{
-		redis_pool: pool,
+	return redisPool
+}
+
+// WithMaxActive 设置最大活跃
+func WithMaxActive(maxActive int) Redis_func {
+	return func(r *RedisPool) {
+		r.maxActive = maxActive
 	}
+}
 
+// WithMaxIdle 设置最大空闲
+func WithMaxIdle(maxIdle int) Redis_func {
+	return func(r *RedisPool) {
+		r.maxIdle = maxIdle
+	}
+}
+
+// WithIdleTime 设置空闲连接超时时间
+func WithIdleTime(idleTime time.Duration) Redis_func {
+	return func(r *RedisPool) {
+		r.idleTime = idleTime
+	}
 }
 
 func (this *RedisPool) CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, err error) {
