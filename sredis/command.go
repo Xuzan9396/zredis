@@ -6,17 +6,17 @@ import (
 
 // -------------------------  公众函数  -----------------------
 
-func (c *RedisPool) CommonGet(key string, databases ...string) (interface{}, error) {
+func (c *RedisPool) CommonGet(key string) (interface{}, error) {
 	return c.CommonCmd("GET", key)
 
 }
 
-func (c *RedisPool) CommonExists(key string, databases ...string) (interface{}, error) {
+func (c *RedisPool) CommonExists(key string) (interface{}, error) {
 	return c.CommonCmd("EXISTS", key)
 
 }
 
-func (c *RedisPool) CommonSetNx(key string, val interface{}, databases ...string) (interface{}, error) {
+func (c *RedisPool) CommonSetNx(key string, val interface{}) (interface{}, error) {
 	return c.CommonCmd("SETNX", key, val)
 }
 

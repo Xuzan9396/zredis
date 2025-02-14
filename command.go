@@ -5,17 +5,17 @@ import (
 )
 
 // -------------------------  公众函数  -----------------------
-func CommonGet(key string, databases ...string) (interface{}, error) {
+func CommonGet(key string) (interface{}, error) {
 	return CommonCmd("GET", key)
 
 }
 
-func CommonExists(key string, databases ...string) (interface{}, error) {
+func CommonExists(key string) (interface{}, error) {
 	return CommonCmd("EXISTS", key)
 
 }
 
-func CommonSetNx(key string, val interface{}, databases ...string) (interface{}, error) {
+func CommonSetNx(key string, val interface{}) (interface{}, error) {
 	return CommonCmd("SETNX", key, val)
 }
 
@@ -116,7 +116,6 @@ func CommonSCARD(key string) (interface{}, error) {
 
 func CommonHset(key string, key_one, val interface{}) (interface{}, error) {
 	return CommonCmd("HSET", key, key_one, val)
-
 }
 func CommonZRange(key string, start, end int, withScore bool) (interface{}, error) {
 	arr := []interface{}{
