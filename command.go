@@ -1,6 +1,7 @@
 package zredis
 
 import (
+	"errors"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -288,4 +289,101 @@ func CommonBRpop(key string, timeout int) (interface{}, error) {
 
 func CommonLLen(key string) (interface{}, error) {
 	return CommonCmd("LLEN", key)
+}
+
+type funcType func() ([]byte, error)
+type funcTypeInt func() ([]byte, int64, error)
+
+func CallBackMsgpackCache[T int64](redisKey string, funcs funcType, opt ...T) ([]byte, error) {
+
+	existsInt, _ := redis.Int(CommonExists(redisKey))
+	if existsInt == 0 {
+		// 不存在缓存
+		res, err := funcs()
+		if err != nil {
+			return nil, err
+		}
+		if res == nil {
+			return nil, errors.New(" is null")
+		}
+		var timeOut int64 = 86400
+		if len(opt) > 0 {
+			timeOut = int64(opt[0])
+		}
+		CommonSetEx(redisKey, res, timeOut) // 缓存一天
+		return res, nil
+	} else {
+		// 存在缓存
+		bytesRes, err := redis.Bytes(CommonGet(redisKey))
+		if err != nil {
+			return nil, err
+		}
+		return bytesRes, nil
+	}
+
+}
+
+// 获取到内部数据设置缓存，根据里面的数据设置缓存时间
+func CallBackMsgpackCacheIn(redisKey string, funcs funcTypeInt) ([]byte, error) {
+
+	existsInt, _ := redis.Int(CommonExists(redisKey))
+	if existsInt == 0 {
+		// 不存在缓存
+		res, timeOut, err := funcs()
+		if err != nil {
+			return nil, err
+		}
+		if res == nil {
+			return nil, errors.New("data is null")
+		}
+
+		_, err = CommonSet(redisKey, res)
+		if err != nil {
+			return nil, err
+		}
+		if timeOut > 0 {
+			CommonEXPIRE(redisKey, int(timeOut)) // 缓存到某个直接戳
+		}
+		return res, nil
+	} else {
+		// 存在缓存
+		bytesRes, err := redis.Bytes(CommonGet(redisKey))
+		if err != nil {
+			return nil, err
+		}
+		return bytesRes, nil
+	}
+
+}
+
+// 批量删除key
+func CommonDelPattern(patternKey string) (err error) {
+
+	cursor := "0"
+
+	for {
+		// 使用SCAN命令扫描键
+		values, err := redis.Values(CommonCmd("SCAN", cursor, "MATCH", patternKey))
+		if err != nil {
+			return err
+		}
+
+		// 获取新的cursor和keys
+		cursor, _ = redis.String(values[0], nil)
+		keys, _ := redis.Strings(values[1], nil)
+
+		// 删除匹配到的键
+		for _, key := range keys {
+			_, err = CommonCmd("DEL", key)
+			if err != nil {
+				return err
+			}
+		}
+
+		// 如果cursor回到0，表示扫描完成
+		if cursor == "0" {
+			break
+		}
+	}
+	return nil
 }

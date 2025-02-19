@@ -37,6 +37,8 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
 			c, err := redis.Dial(
 				"tcp",
 				conn,
+				//redis.DialUseTLS(true),
+				//redis.DialTLSConfig(&tls.Config{InsecureSkipVerify: true}),
 				redis.DialConnectTimeout(time.Duration(5)*time.Second),
 				redis.DialReadTimeout(time.Duration(10)*time.Second),
 				redis.DialWriteTimeout(time.Duration(10)*time.Second),
