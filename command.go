@@ -98,6 +98,11 @@ func CommonEXPIRE(key string, timeInt int) (err error) {
 	return
 }
 
+func CommonEXPIREAT(key string, timestampInt int64) (res interface{}, err error) {
+	res, err = CommonCmd("EXPIREAT", key, timestampInt)
+	return
+}
+
 // 倒序获取榜单
 func CommonZrevrank(key string, val interface{}) (interface{}, error) {
 	return CommonCmd("ZREVRANK", key, val)
@@ -342,7 +347,7 @@ func CallBackMsgpackCacheIn(redisKey string, funcs funcTypeInt) ([]byte, error) 
 			return nil, err
 		}
 		if timeOut > 0 {
-			CommonEXPIRE(redisKey, int(timeOut)) // 缓存到某个直接戳
+			CommonEXPIREAT(redisKey, timeOut) // 缓存到某个直接戳
 		}
 		return res, nil
 	} else {
