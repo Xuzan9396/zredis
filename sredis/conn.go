@@ -1,17 +1,18 @@
 package sredis
 
 import (
+	"crypto/tls"
 	"github.com/Xuzan9396/zlog"
 	"github.com/garyburd/redigo/redis"
 	"time"
 )
 
 type RedisPool struct {
-	redis_pool *redis.Pool
-
-	maxActive int
-	maxIdle   int
-	idleTime  time.Duration
+	redis_pool  *redis.Pool
+	maxActive   int
+	maxIdle     int
+	idleTime    time.Duration
+	redisOption []redis.DialOption
 }
 type Redis_func func(*RedisPool)
 
@@ -26,7 +27,14 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) *RedisPool {
 	for _, opt := range opts {
 		opt(redisPool)
 	}
-
+	optionDefalt := []redis.DialOption{
+		redis.DialConnectTimeout(time.Duration(5) * time.Second),
+		redis.DialReadTimeout(time.Duration(10) * time.Second),
+		redis.DialWriteTimeout(time.Duration(10) * time.Second),
+	}
+	if len(redisPool.redisOption) > 0 {
+		optionDefalt = append(optionDefalt, redisPool.redisOption...)
+	}
 	pool := &redis.Pool{
 		MaxActive:   redisPool.maxActive, // 最大活跃 假设应用在高并发场景下，最大并发请求数为 1000，那么可以将 MaxActive 设置为 2000-3000。
 		MaxIdle:     redisPool.maxIdle,   // 最大空闲 ,一般启动时候保持的链接数
@@ -36,9 +44,7 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) *RedisPool {
 			c, err := redis.Dial(
 				"tcp",
 				conn,
-				redis.DialConnectTimeout(time.Duration(5)*time.Second),
-				redis.DialReadTimeout(time.Duration(10)*time.Second),
-				redis.DialWriteTimeout(time.Duration(10)*time.Second),
+				optionDefalt...,
 			)
 			if err != nil {
 				zlog.F().Error("Redis Redis 连接错误", err)
@@ -88,6 +94,20 @@ func WithMaxIdle(maxIdle int) Redis_func {
 func WithIdleTime(idleTime time.Duration) Redis_func {
 	return func(r *RedisPool) {
 		r.idleTime = idleTime
+	}
+}
+
+// WithRedisOption 设置redis连接选项
+func WithRedisOption(opts ...redis.DialOption) Redis_func {
+	return func(r *RedisPool) {
+		r.redisOption = opts
+	}
+}
+
+// WithRedisTLS 设置redis连接是否使用TLS
+func WithRedisTLS() Redis_func {
+	return func(r *RedisPool) {
+		r.redisOption = append(r.redisOption, redis.DialUseTLS(true), redis.DialTLSConfig(&tls.Config{InsecureSkipVerify: true}))
 	}
 }
 

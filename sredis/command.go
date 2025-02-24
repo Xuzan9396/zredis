@@ -1,11 +1,11 @@
 package sredis
 
 import (
+	"errors"
 	"github.com/garyburd/redigo/redis"
 )
 
 // -------------------------  公众函数  -----------------------
-
 func (c *RedisPool) CommonGet(key string) (interface{}, error) {
 	return c.CommonCmd("GET", key)
 
@@ -98,6 +98,11 @@ func (c *RedisPool) CommonEXPIRE(key string, timeInt int) (err error) {
 	return
 }
 
+func (c *RedisPool) CommonEXPIREAT(key string, timestampInt int64) (res interface{}, err error) {
+	res, err = c.CommonCmd("EXPIREAT", key, timestampInt)
+	return
+}
+
 // 倒序获取榜单
 func (c *RedisPool) CommonZrevrank(key string, val interface{}) (interface{}, error) {
 	return c.CommonCmd("ZREVRANK", key, val)
@@ -117,7 +122,6 @@ func (c *RedisPool) CommonSCARD(key string) (interface{}, error) {
 
 func (c *RedisPool) CommonHset(key string, key_one, val interface{}) (interface{}, error) {
 	return c.CommonCmd("HSET", key, key_one, val)
-
 }
 func (c *RedisPool) CommonZRange(key string, start, end int, withScore bool) (interface{}, error) {
 	arr := []interface{}{
@@ -290,4 +294,101 @@ func (c *RedisPool) CommonBRpop(key string, timeout int) (interface{}, error) {
 
 func (c *RedisPool) CommonLLen(key string) (interface{}, error) {
 	return c.CommonCmd("LLEN", key)
+}
+
+type funcType func() ([]byte, error)
+type funcTypeInt func() ([]byte, int64, error)
+
+func (c *RedisPool) CallBackMsgpackCache(redisKey string, funcs funcType, opt ...int64) ([]byte, error) {
+
+	existsInt, _ := redis.Int(c.CommonExists(redisKey))
+	if existsInt == 0 {
+		// 不存在缓存
+		res, err := funcs()
+		if err != nil {
+			return nil, err
+		}
+		if res == nil {
+			return nil, errors.New(" is null")
+		}
+		var timeOut int64 = 86400
+		if len(opt) > 0 {
+			timeOut = int64(opt[0])
+		}
+		c.CommonSetEx(redisKey, res, timeOut) // 缓存一天
+		return res, nil
+	} else {
+		// 存在缓存
+		bytesRes, err := redis.Bytes(c.CommonGet(redisKey))
+		if err != nil {
+			return nil, err
+		}
+		return bytesRes, nil
+	}
+
+}
+
+// 获取到内部数据设置缓存，根据里面的数据设置缓存时间
+func (c *RedisPool) CallBackMsgpackCacheIn(redisKey string, funcs funcTypeInt) ([]byte, error) {
+
+	existsInt, _ := redis.Int(c.CommonExists(redisKey))
+	if existsInt == 0 {
+		// 不存在缓存
+		res, timeOut, err := funcs()
+		if err != nil {
+			return nil, err
+		}
+		if res == nil {
+			return nil, errors.New("data is null")
+		}
+
+		_, err = c.CommonSet(redisKey, res)
+		if err != nil {
+			return nil, err
+		}
+		if timeOut > 0 {
+			c.CommonEXPIREAT(redisKey, timeOut) // 缓存到某个直接戳
+		}
+		return res, nil
+	} else {
+		// 存在缓存
+		bytesRes, err := redis.Bytes(c.CommonGet(redisKey))
+		if err != nil {
+			return nil, err
+		}
+		return bytesRes, nil
+	}
+
+}
+
+// 批量删除key
+func (c *RedisPool) CommonDelPattern(patternKey string) (err error) {
+
+	cursor := "0"
+
+	for {
+		// 使用SCAN命令扫描键
+		values, err := redis.Values(c.CommonCmd("SCAN", cursor, "MATCH", patternKey))
+		if err != nil {
+			return err
+		}
+
+		// 获取新的cursor和keys
+		cursor, _ = redis.String(values[0], nil)
+		keys, _ := redis.Strings(values[1], nil)
+
+		// 删除匹配到的键
+		for _, key := range keys {
+			_, err = c.CommonCmd("DEL", key)
+			if err != nil {
+				return err
+			}
+		}
+
+		// 如果cursor回到0，表示扫描完成
+		if cursor == "0" {
+			break
+		}
+	}
+	return nil
 }
