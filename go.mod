@@ -1,6 +1,6 @@
 module github.com/Xuzan9396/zredis
 
-go 1.22
+go 1.20
 
 require (
 	github.com/Xuzan9396/zlog v0.1.5
