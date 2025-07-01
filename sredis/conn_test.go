@@ -35,7 +35,8 @@ func TestRedisPool_CommonCmd(t *testing.T) {
 	conn := "127.0.0.1:6379"
 	passwd := "27252725"
 	dbnum := 0
-	client := sredis.Conn(conn, passwd, dbnum, sredis.WithIdleTime(60*time.Second), sredis.WithRedisTLS())
+	client := sredis.Conn(conn, passwd, dbnum, sredis.WithIdleTime(60*time.Second))//sredis.WithRedisTLS(),
+
 	client.CommonHset("test_lua_hset", "coin", 100)
 	client.CommonHset("test_lua_hset", "coin_free", 10)
 	resBytes, err := redis.Values(client.CommonLuaScript(GIFT_DRAW_POOL, "test_lua_hset", 2))

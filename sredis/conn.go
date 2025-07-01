@@ -2,6 +2,7 @@ package sredis
 
 import (
 	"crypto/tls"
+	"fmt"
 	"github.com/Xuzan9396/zlog"
 	"github.com/garyburd/redigo/redis"
 	"time"
@@ -75,6 +76,7 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) *RedisPool {
 	c := pool.Get()
 	if c.Err() != nil {
 		zlog.F().Fatalf("conn:%s,err:%v", conn, c.Err())
+		pool.Close() // 关闭连接池避免资源泄露
 		return nil
 	}
 	c.Close()
@@ -113,17 +115,48 @@ func WithRedisOption(opts ...redis.DialOption) Redis_func {
 }
 
 // WithRedisTLS 设置redis连接是否使用TLS
+// 注意: 生产环境中应该提供正确的TLS配置，而不是跳过验证
 func WithRedisTLS() Redis_func {
 	return func(r *RedisPool) {
-		r.redisOption = append(r.redisOption, redis.DialUseTLS(true), redis.DialTLSConfig(&tls.Config{InsecureSkipVerify: true}))
+		r.redisOption = append(r.redisOption, redis.DialUseTLS(true), redis.DialTLSConfig(&tls.Config{
+			MinVersion: tls.VersionTLS11, // 使用TLS 1.2或更高版本
+			// InsecureSkipVerify: true, // 生产环境中应该移除此选项
+		}))
+	}
+}
+
+// WithRedisTLSConfig 允许用户提供自定义的TLS配置
+func WithRedisTLSConfig(tlsConfig *tls.Config) Redis_func {
+	return func(r *RedisPool) {
+		if tlsConfig == nil {
+			// 提供默认的安全TLS配置
+			tlsConfig = &tls.Config{
+				MinVersion: tls.VersionTLS11,
+			}
+		}
+		r.redisOption = append(r.redisOption, redis.DialUseTLS(true), redis.DialTLSConfig(tlsConfig))
 	}
 }
 
 func (this *RedisPool) CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, err error) {
+	if this == nil {
+		zlog.F().Errorf("RedisPool 实例为空")
+		return nil, fmt.Errorf("RedisPool instance is nil")
+	}
+
+	if this.redis_pool == nil {
+		zlog.F().Errorf("Redis 连接池为空")
+		return nil, fmt.Errorf("redis pool is nil")
+	}
+
 	c := this.redis_pool.Get()
+	if c == nil {
+		zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		return nil, fmt.Errorf("redis connection is nil")
+	}
 	if c.Err() != nil {
 		zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
-		return
+		return nil, c.Err()
 	}
 	defer c.Close()
 	res, err := c.Do(cmdStr, keysAndArgs...)
@@ -134,10 +167,24 @@ func (this *RedisPool) CommonCmd(cmdStr string, keysAndArgs ...interface{}) (rep
 }
 
 func (this *RedisPool) CommonLuaScript(script string, key string, args ...interface{}) (reply interface{}, err error) {
+	if this == nil {
+		zlog.F().Errorf("RedisPool 实例为空")
+		return nil, fmt.Errorf("RedisPool instance is nil")
+	}
+
+	if this.redis_pool == nil {
+		zlog.F().Errorf("Redis 连接池为空")
+		return nil, fmt.Errorf("redis pool is nil")
+	}
+
 	c := this.redis_pool.Get()
+	if c == nil {
+		zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		return nil, fmt.Errorf("redis connection is nil")
+	}
 	if c.Err() != nil {
 		zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
-		return
+		return nil, c.Err()
 	}
 	defer c.Close()
 

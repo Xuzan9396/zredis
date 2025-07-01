@@ -118,8 +118,17 @@ func CommonCmd(name, cmdStr string, keysAndArgs ...interface{}) (reply interface
 		zlog.F().Errorf("获取 Redis 连接池失败: %v", err)
 		return nil, err
 	}
+	
+	if pool == nil {
+		zlog.F().Errorf("Redis 连接池为空: %s", name)
+		return nil, fmt.Errorf("redis pool is nil for name: %s", name)
+	}
 
 	c := pool.Get()
+	if c == nil {
+		zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		return nil, fmt.Errorf("redis connection is nil")
+	}
 	if c.Err() != nil {
 		zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
 		return nil, c.Err()
@@ -140,8 +149,17 @@ func CommonLuaScript(name, script string, key string, args ...interface{}) (repl
 		zlog.F().Errorf("获取 Redis 连接池失败: %v", err)
 		return nil, err
 	}
+	
+	if pool == nil {
+		zlog.F().Errorf("Redis 连接池为空: %s", name)
+		return nil, fmt.Errorf("redis pool is nil for name: %s", name)
+	}
 
 	c := pool.Get()
+	if c == nil {
+		zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		return nil, fmt.Errorf("redis connection is nil")
+	}
 	if c.Err() != nil {
 		zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
 		return nil, c.Err()

@@ -1,291 +1,210 @@
 package mredis
 
 import (
-	"github.com/garyburd/redigo/redis"
+	"github.com/Xuzan9396/zredis"
 )
 
-// -------------------------  公众函数  -----------------------
-func CommonGet(name, key string) (interface{}, error) {
-	return CommonCmd(name, "GET", key)
+// 获取指定名称的Redis命令实例
+func GetCommander(name string) zredis.RedisCommander {
+	return zredis.NewRedisCommands(
+		func(cmdStr string, keysAndArgs ...interface{}) (interface{}, error) {
+			return CommonCmd(name, cmdStr, keysAndArgs...)
+		},
+		func(script string, key string, args ...interface{}) (interface{}, error) {
+			return CommonLuaScript(name, script, key, args...)
+		},
+	)
+}
 
+// -------------------------  公众函数  -----------------------
+// 向后兼容的包装函数
+
+func CommonGet(name, key string) (interface{}, error) {
+	return GetCommander(name).Get(key)
 }
 
 func CommonExists(name, key string) (interface{}, error) {
-	return CommonCmd(name, "EXISTS", key)
-
+	return GetCommander(name).Exists(key)
 }
 
 func CommonSetNx(name, key string, val interface{}) (interface{}, error) {
-	return CommonCmd(name, "SETNX", key, val)
+	return GetCommander(name).SetNx(key, val)
 }
 
 func CommonSetNxEx(name, key string, val interface{}, timeExpire int) (interface{}, error) {
-	// 返回OK 和 nil
-	return CommonCmd(name, "SET", key, val, "EX", timeExpire, "NX")
+	return GetCommander(name).SetNxEx(key, val, timeExpire)
 }
 
 func CommonSet(name, key string, val interface{}) (interface{}, error) {
-	return CommonCmd(name, "SET", key, val)
-
+	return GetCommander(name).Set(key, val)
 }
 
 func CommonSetEx(name, key string, val interface{}, timeExpire int64) (interface{}, error) {
-	return CommonCmd(name, "SETEX", key, timeExpire, val)
+	return GetCommander(name).SetEx(key, val, timeExpire)
 }
 
 func CommonSISMEMBER(name, key string, val interface{}) (bools bool, err error) {
-
-	var (
-		existsInt64 int64
-	)
-
-	existsInt64, err = redis.Int64(CommonCmd(name, "SISMEMBER", key, val))
-
-	if err != nil {
-		return
-	}
-
-	if existsInt64 == 1 {
-		bools = true
-		return
-	}
-
-	return
+	return GetCommander(name).SIsMember(key, val)
 }
 
 func CommonZADD(name, key string, score, val interface{}) (err error) {
-
-	_, err = CommonCmd(name, "ZADD", key, score, val)
-
-	if err != nil {
-		return
-	}
-
-	return
+	return GetCommander(name).ZAdd(key, score, val)
 }
 
 func CommonZADDBool(name, key string, score, val interface{}) (boolInt int, err error) {
-
-	boolInt, err = redis.Int(CommonCmd(name, "ZADD", key, score, val))
-
-	if err != nil {
-		return
-	}
-
-	return
+	return GetCommander(name).ZAddBool(key, score, val)
 }
 
 func CommonSADD(name, key string, val interface{}) (err error) {
-
-	_, err = CommonCmd(name, "SADD", key, val)
-
-	if err != nil {
-		return
-	}
-
-	return
+	return GetCommander(name).SAdd(key, val)
 }
 
 func CommonEXPIRE(name, key string, timeInt int) (err error) {
-
-	_, err = CommonCmd(name, "EXPIRE", key, timeInt)
-
-	if err != nil {
-		return
-	}
-
-	return
+	return GetCommander(name).Expire(key, timeInt)
 }
 
-// 倒序获取榜单
 func CommonZrevrank(name, key string, val interface{}) (interface{}, error) {
-	return CommonCmd(name, "ZREVRANK", key, val)
+	return GetCommander(name).ZRevRank(key, val)
 }
 
 func CommonZCARD(name, key string) (interface{}, error) {
-	//avgArr := dealRedis(constvar.ACTIVE_520_HEARTBEAT_VAL_RANK, avgs...)
-	return CommonCmd(name, "ZCARD", key)
-
+	return GetCommander(name).ZCard(key)
 }
 
 func CommonSCARD(name, key string) (interface{}, error) {
-	//avgArr := dealRedis(constvar.ACTIVE_520_HEARTBEAT_VAL_RANK, avgs...)
-	return CommonCmd(name, "SCARD", key)
-
+	return GetCommander(name).SCard(key)
 }
 
 func CommonHset(name, key string, key_one, val interface{}) (interface{}, error) {
-	return CommonCmd(name, "HSET", key, key_one, val)
+	return GetCommander(name).Hset(key, key_one, val)
 }
+
 func CommonZRange(name, key string, start, end int, withScore bool) (interface{}, error) {
-	arr := []interface{}{
-		key, start, end,
-	}
-	if withScore {
-		arr = append(arr, "WITHSCORES")
-	}
-
-	return CommonCmd(name, "ZRANGE", arr...)
-
+	return GetCommander(name).ZRange(key, start, end, withScore)
 }
 
-// 分数排序
 func CommonZRevRange(name, key string, start, end int, withScore bool) (interface{}, error) {
-	arr := []interface{}{
-		key, start, end,
-	}
-	if withScore {
-		arr = append(arr, "WITHSCORES")
-	}
-
-	return CommonCmd(name, "ZREVRANGE", arr...)
-
+	return GetCommander(name).ZRevRange(key, start, end, withScore)
 }
 
 func CommonZrem(name, key string, val interface{}) (interface{}, error) {
-
-	return CommonCmd(name, "ZREM", key, val)
+	return GetCommander(name).ZRem(key, val)
 }
 
 func CommonSrem(name, key string, val interface{}) (interface{}, error) {
-
-	return CommonCmd(name, "SREM", key, val)
+	return GetCommander(name).SRem(key, val)
 }
 
 func CommonZRANGEBYSCORE(name, key string, start, end interface{}, withScore bool) (interface{}, error) {
-
-	//ZRANGEBYSCORE RED_RANK:UNION_UNBIND:20201202 -inf 4 WITHSCORES
-	arr := []interface{}{
-		key, start, end,
-	}
-	if withScore {
-		arr = append(arr, "WITHSCORES")
-	}
-
-	return CommonCmd(name, "ZRANGEBYSCORE", arr...)
-
+	return GetCommander(name).ZRangeByScore(key, start, end, withScore)
 }
 
 func CommonZscore(name, key string, val interface{}) (interface{}, error) {
-
-	return CommonCmd(name, "ZSCORE", key, val)
+	return GetCommander(name).ZScore(key, val)
 }
 
 func CommonSMEMBERS(name, key string) (interface{}, error) {
-	return CommonCmd(name, "SMEMBERS", key)
-
+	return GetCommander(name).SMembers(key)
 }
 
 func CommonSetBit(name, key string, offset, val interface{}) (interface{}, error) {
-
-	return CommonCmd(name, "SETBIT", key, offset, val)
-
+	return GetCommander(name).SetBit(key, offset, val)
 }
 
 func CommonGetBit(name, key string, offset interface{}) (interface{}, error) {
-
-	return CommonCmd(name, "GETBIT", key, offset)
-
+	return GetCommander(name).GetBit(key, offset)
 }
 
 func CommonBitCount(name, key string) (interface{}, error) {
-	return CommonCmd(name, "BITCOUNT", key)
+	return GetCommander(name).BitCount(key)
 }
 
 func CommonDel(name, key string) (interface{}, error) {
-	return CommonCmd(name, "del", key)
+	return GetCommander(name).Del(key)
 }
 
 func CommonZIncrBy(name, key string, offest interface{}, val interface{}) (interface{}, error) {
-
-	return CommonCmd(name, "ZINCRBY", key, offest, val)
-
+	return GetCommander(name).ZIncrBy(key, offest, val)
 }
 
 func CommonZIncrByExpire(name, key string, offest interface{}, val interface{}, expireInt int) (interface{}, error) {
-	res, err := CommonCmd(name, "ZINCRBY", key, offest, val)
-	CommonCmd(name, "EXPIRE", key, expireInt)
-	return res, err
-
+	return GetCommander(name).ZIncrByExpire(key, offest, val, expireInt)
 }
 
 func CommonIncrBy(name, key string) (interface{}, error) {
-	return CommonCmd(name, "INCR", key)
+	return GetCommander(name).IncrBy(key)
 }
 
 func CommonKeys(name, key string) (interface{}, error) {
-	return CommonCmd(name, "KEYS", key)
-
+	return GetCommander(name).Keys(key)
 }
 
 func CommonHget(name, key string, val string) (interface{}, error) {
-	return CommonCmd(name, "HGET", key, val)
+	return GetCommander(name).Hget(key, val)
 }
 
 func CommonDECRBYByNum(name, key string, num interface{}) (interface{}, error) {
-	return CommonCmd(name, "DECRBY", key, num)
-
+	return GetCommander(name).DecrByNum(key, num)
 }
 
-// hdel
 func CommonHdel(name, key string, val interface{}) (interface{}, error) {
-	return CommonCmd(name, "HDEL", key, val)
+	return GetCommander(name).Hdel(key, val)
 }
 
-// HEXISTS
 func CommonHexists(name, key string, val interface{}) bool {
-
-	res, _ := redis.Int(CommonCmd(name, "HEXISTS", key, val))
-	if res == 1 {
-		return true
-	}
-
-	return false
-
+	return GetCommander(name).Hexists(key, val)
 }
 
 func CommonHIncrby(name, key string, field string, val any) (interface{}, error) {
-	return CommonCmd(name, "HINCRBY", key, field, val)
-
+	return GetCommander(name).HIncrby(key, field, val)
 }
 
 func CommonIncrby(name, key string, val any) (interface{}, error) {
-	return CommonCmd(name, "INCRBY", key, val)
-
+	return GetCommander(name).IncrbyVal(key, val)
 }
 
-// floatIncrby
 func CommonIncrbyFloat(name, key string, val any) (interface{}, error) {
-
-	return CommonCmd(name, "INCRBYFLOAT", key, val)
-
+	return GetCommander(name).IncrbyFloat(key, val)
 }
 
 func CommonHMget(name, key string, field []interface{}) (interface{}, error) {
-	fields := make([]interface{}, 0)
-	fields = append(fields, key)
-	fields = append(fields, field...)
-	return CommonCmd(name, "HMGET", fields...)
+	return GetCommander(name).HMget(key, field)
 }
 
 func CommonHgetAll(name, key string) (interface{}, error) {
-	return CommonCmd(name, "HGETALL", key)
-
+	return GetCommander(name).HgetAll(key)
 }
 
 func CommonLPush(name, key string, val interface{}) (interface{}, error) {
-	return CommonCmd(name, "LPUSH", key, val)
+	return GetCommander(name).LPush(key, val)
 }
 
 func CommonRPop(name, key string) (interface{}, error) {
-	return CommonCmd(name, "RPOP", key)
+	return GetCommander(name).RPop(key)
 }
 
-// 该命令会阻塞
 func CommonBRpop(name, key string, timeout int) (interface{}, error) {
-	return CommonCmd(name, "BRPOP", key, timeout)
+	return GetCommander(name).BRPop(key, timeout)
 }
 
 func CommonLLen(name, key string) (interface{}, error) {
-	return CommonCmd(name, "LLEN", key)
+	return GetCommander(name).LLen(key)
+}
+
+// 批量删除key
+func CommonDelPattern(name, patternKey string) (err error) {
+	return GetCommander(name).DelPattern(patternKey)
+}
+
+// 缓存相关函数
+func CallBackMsgpackCache(name, redisKey string, funcs zredis.FuncType, opt ...int64) ([]byte, error) {
+	var timeOut int64 = 86400
+	if len(opt) > 0 {
+		timeOut = opt[0]
+	}
+	return zredis.CallBackMsgpackCacheWithCommander(GetCommander(name), redisKey, funcs, timeOut)
+}
+
+func CallBackMsgpackCacheIn(name, redisKey string, funcs zredis.FuncTypeInt) ([]byte, error) {
+	return zredis.CallBackMsgpackCacheInWithCommander(GetCommander(name), redisKey, funcs)
 }
