@@ -125,7 +125,7 @@ func CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, er
 	c := redisPool.redis_pool.Get()
 	if c.Err() != nil {
 		//zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
-		return
+		return nil, c.Err()
 	}
 	defer c.Close()
 	res, err := c.Do(cmdStr, keysAndArgs...)
