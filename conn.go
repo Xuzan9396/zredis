@@ -59,7 +59,7 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
 
 					c.Close()
 					//zlog.F().Fatalf("Connect to redis AUTH error: %v", err)
-					log.Fatal("Connect to redis AUTH error:", err)
+					log.Println("Connect to redis AUTH error:", err)
 					return nil, err
 				}
 			}
@@ -78,7 +78,7 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
 	c := pool.Get()
 	if c.Err() != nil {
 		//zlog.F().Fatalf("conn:%s,err:%v", conn, c.Err())
-		log.Fatalf("conn:%s,err:%v", conn, c.Err())
+		log.Println("conn:%s,err:%v", conn, c.Err())
 		return
 	}
 	c.Close()

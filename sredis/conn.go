@@ -78,7 +78,8 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) *RedisPool {
 	c := pool.Get()
 	if c.Err() != nil {
 		//zlog.F().Fatalf("conn:%s,err:%v", conn, c.Err())
-		log.Fatalf("conn:%s,err:%v", conn, c.Err())
+		//log.Fatalf("conn:%s,err:%v", conn, c.Err())
+		log.Println("conn:%s,err:%v", conn, c.Err())
 		pool.Close() // 关闭连接池避免资源泄露
 		return nil
 	}

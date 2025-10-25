@@ -75,7 +75,7 @@ func Conn(name, conn, auth string, dbnum int, opts ...Redis_func) {
 				if _, err := c.Do("AUTH", auth); err != nil {
 					c.Close()
 					//zlog.F().Fatalf("Connect to redis AUTH error: %v", err)
-					log.Fatal("Connect to redis AUTH error:", err)
+					log.Println("Connect to redis AUTH error:", err)
 					return nil, err
 				}
 			}
