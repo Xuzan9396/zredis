@@ -531,19 +531,7 @@ commander := mredis.GetCommander("instance")
 commander.Get("key") // 使用新的统一接口
 ```
 
-## 🤝 贡献
 
-欢迎提交Issue和Pull Request来改进这个项目。
-
-## 📄 许可证
-
-MIT License - 详见 [LICENSE](LICENSE) 文件。
-
-## 🔗 相关链接
-
-- [Redis官方文档](https://redis.io/documentation)
-- [Redigo客户端](https://github.com/garyburd/redigo)
-- [Go Redis最佳实践](https://redis.io/docs/clients/go/)
 
 ---
 

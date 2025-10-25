@@ -3,8 +3,8 @@ package sredis
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/Xuzan9396/zlog"
 	"github.com/garyburd/redigo/redis"
+	"log"
 	"time"
 )
 
@@ -48,14 +48,16 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) *RedisPool {
 				optionDefalt...,
 			)
 			if err != nil {
-				zlog.F().Error("Redis Redis 连接错误", err)
+				//zlog.F().Error("Redis Redis 连接错误", err)
+				log.Println(err)
 				return nil, err
 			}
 			//验证redis 是否有密码
 			if auth != "" {
 				if _, err := c.Do("AUTH", auth); err != nil {
 
-					zlog.F().Error("Connect to redis AUTH error", err)
+					//zlog.F().Error("Connect to redis AUTH error", err)
+					log.Println("Connect to redis AUTH error", err)
 					c.Close()
 					return nil, err
 				}
@@ -75,7 +77,8 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) *RedisPool {
 
 	c := pool.Get()
 	if c.Err() != nil {
-		zlog.F().Fatalf("conn:%s,err:%v", conn, c.Err())
+		//zlog.F().Fatalf("conn:%s,err:%v", conn, c.Err())
+		log.Fatalf("conn:%s,err:%v", conn, c.Err())
 		pool.Close() // 关闭连接池避免资源泄露
 		return nil
 	}
@@ -140,22 +143,22 @@ func WithRedisTLSConfig(tlsConfig *tls.Config) Redis_func {
 
 func (this *RedisPool) CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, err error) {
 	if this == nil {
-		zlog.F().Errorf("RedisPool 实例为空")
+		//zlog.F().Errorf("RedisPool 实例为空")
 		return nil, fmt.Errorf("RedisPool instance is nil")
 	}
 
 	if this.redis_pool == nil {
-		zlog.F().Errorf("Redis 连接池为空")
+		//zlog.F().Errorf("Redis 连接池为空")
 		return nil, fmt.Errorf("redis pool is nil")
 	}
 
 	c := this.redis_pool.Get()
 	if c == nil {
-		zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		//zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
 		return nil, fmt.Errorf("redis connection is nil")
 	}
 	if c.Err() != nil {
-		zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
+		//zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
 		return nil, c.Err()
 	}
 	defer c.Close()
@@ -168,22 +171,22 @@ func (this *RedisPool) CommonCmd(cmdStr string, keysAndArgs ...interface{}) (rep
 
 func (this *RedisPool) CommonLuaScript(script string, key string, args ...interface{}) (reply interface{}, err error) {
 	if this == nil {
-		zlog.F().Errorf("RedisPool 实例为空")
+		//zlog.F().Errorf("RedisPool 实例为空")
 		return nil, fmt.Errorf("RedisPool instance is nil")
 	}
 
 	if this.redis_pool == nil {
-		zlog.F().Errorf("Redis 连接池为空")
+		//zlog.F().Errorf("Redis 连接池为空")
 		return nil, fmt.Errorf("redis pool is nil")
 	}
 
 	c := this.redis_pool.Get()
 	if c == nil {
-		zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		//zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
 		return nil, fmt.Errorf("redis connection is nil")
 	}
 	if c.Err() != nil {
-		zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
+		//zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
 		return nil, c.Err()
 	}
 	defer c.Close()

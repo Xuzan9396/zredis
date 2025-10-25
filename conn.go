@@ -2,8 +2,8 @@ package zredis
 
 import (
 	"crypto/tls"
-	"github.com/Xuzan9396/zlog"
 	"github.com/garyburd/redigo/redis"
+	"log"
 	"time"
 )
 
@@ -50,7 +50,7 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
 				optionDefalt...,
 			)
 			if err != nil {
-				zlog.F().Error("Redis Redis 连接错误", err)
+				//zlog.F().Error("Redis Redis 连接错误", err)
 				return nil, err
 			}
 			//验证redis 是否有密码
@@ -58,7 +58,8 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
 				if _, err := c.Do("AUTH", auth); err != nil {
 
 					c.Close()
-					zlog.F().Fatalf("Connect to redis AUTH error: %v", err)
+					//zlog.F().Fatalf("Connect to redis AUTH error: %v", err)
+					log.Fatal("Connect to redis AUTH error:", err)
 					return nil, err
 				}
 			}
@@ -76,7 +77,8 @@ func Conn(conn, auth string, dbnum int, opts ...Redis_func) {
 	}
 	c := pool.Get()
 	if c.Err() != nil {
-		zlog.F().Fatalf("conn:%s,err:%v", conn, c.Err())
+		//zlog.F().Fatalf("conn:%s,err:%v", conn, c.Err())
+		log.Fatalf("conn:%s,err:%v", conn, c.Err())
 		return
 	}
 	c.Close()
@@ -122,7 +124,7 @@ func WithRedisTLS() Redis_func {
 func CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, err error) {
 	c := redisPool.redis_pool.Get()
 	if c.Err() != nil {
-		zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
+		//zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
 		return
 	}
 	defer c.Close()
@@ -136,7 +138,8 @@ func CommonCmd(cmdStr string, keysAndArgs ...interface{}) (reply interface{}, er
 func CommonLuaScript(script string, key string, args ...interface{}) (reply interface{}, err error) {
 	c := redisPool.redis_pool.Get()
 	if c.Err() != nil {
-		zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
+		//zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
+
 		return
 	}
 	defer c.Close()

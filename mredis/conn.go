@@ -2,8 +2,8 @@ package mredis
 
 import (
 	"fmt"
-	"github.com/Xuzan9396/zlog"
 	"github.com/garyburd/redigo/redis"
+	"log"
 	"sync"
 	"time"
 )
@@ -66,14 +66,16 @@ func Conn(name, conn, auth string, dbnum int, opts ...Redis_func) {
 				redis.DialWriteTimeout(time.Duration(10)*time.Second),
 			)
 			if err != nil {
-				zlog.F().Error("Redis 连接错误", err)
+				//zlog.F().Error("Redis 连接错误", err)
+				log.Println("Redis 连接错误", err)
 				return nil, err
 			}
 			//验证redis 是否有密码
 			if auth != "" {
 				if _, err := c.Do("AUTH", auth); err != nil {
 					c.Close()
-					zlog.F().Fatalf("Connect to redis AUTH error: %v", err)
+					//zlog.F().Fatalf("Connect to redis AUTH error: %v", err)
+					log.Fatal("Connect to redis AUTH error:", err)
 					return nil, err
 				}
 			}
@@ -115,22 +117,26 @@ func getPool(name string) (*redis.Pool, error) {
 func CommonCmd(name, cmdStr string, keysAndArgs ...interface{}) (reply interface{}, err error) {
 	pool, err := getPool(name)
 	if err != nil {
-		zlog.F().Errorf("获取 Redis 连接池失败: %v", err)
+		//zlog.F().Errorf("获取 Redis 连接池失败: %v", err)
+		log.Println("获取 Redis 连接池失败:", err)
 		return nil, err
 	}
-	
+
 	if pool == nil {
-		zlog.F().Errorf("Redis 连接池为空: %s", name)
+		//zlog.F().Errorf("Redis 连接池为空: %s", name)
+		log.Println("Redis 连接池为空:", name)
 		return nil, fmt.Errorf("redis pool is nil for name: %s", name)
 	}
 
 	c := pool.Get()
 	if c == nil {
-		zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		//zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		log.Println("获取 Redis 连接失败: 连接为空")
 		return nil, fmt.Errorf("redis connection is nil")
 	}
 	if c.Err() != nil {
-		zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
+		//zlog.F().Errorf("Redis DoCommonCmd: %v", c.Err())
+		log.Println("Redis DoCommonCmd:", c.Err())
 		return nil, c.Err()
 	}
 	defer c.Close()
@@ -146,22 +152,26 @@ func CommonCmd(name, cmdStr string, keysAndArgs ...interface{}) (reply interface
 func CommonLuaScript(name, script string, key string, args ...interface{}) (reply interface{}, err error) {
 	pool, err := getPool(name)
 	if err != nil {
-		zlog.F().Errorf("获取 Redis 连接池失败: %v", err)
+		//zlog.F().Errorf("获取 Redis 连接池失败: %v", err)
+		log.Println("获取 Redis 连接池失败:", err)
 		return nil, err
 	}
-	
+
 	if pool == nil {
-		zlog.F().Errorf("Redis 连接池为空: %s", name)
+		//zlog.F().Errorf("Redis 连接池为空: %s", name)
+		log.Println("Redis 连接池为空:", name)
 		return nil, fmt.Errorf("redis pool is nil for name: %s", name)
 	}
 
 	c := pool.Get()
 	if c == nil {
-		zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		//zlog.F().Errorf("获取 Redis 连接失败: 连接为空")
+		log.Println("获取 Redis 连接失败: 连接为空")
 		return nil, fmt.Errorf("redis connection is nil")
 	}
 	if c.Err() != nil {
-		zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
+		//zlog.F().Errorf("LuaCommonCmd get redis error: %v", c.Err())
+		log.Println("LuaCommonCmd get redis error:", c.Err())
 		return nil, c.Err()
 	}
 	defer c.Close()
